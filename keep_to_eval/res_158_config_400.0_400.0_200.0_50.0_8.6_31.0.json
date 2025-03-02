@@ -493,8 +493,8 @@
                     "class": "C2dnrv3",
                     "driver_load": 0,
                     "pregamma_strength": 1,
-                    "sigma": 2.0,
-                    "strength": 110
+                    "sigma": 8.6,
+                    "strength": 31.0
                 },
                 {
                     "class": "CDpf",
@@ -727,11 +727,11 @@
                     "dmsc_depurple_thr": 32,
                     "dmsc_dir_thr_max": 0,
                     "dmsc_dir_thr_min": 0,
-                    "dmsc_sharpen_clip_black": 200,
-                    "dmsc_sharpen_clip_white": 200,
+                    "dmsc_sharpen_clip_black": 50.0,
+                    "dmsc_sharpen_clip_white": 200.0,
                     "dmsc_sharpen_enable": 1,
-                    "dmsc_sharpen_factor_black": 200,
-                    "dmsc_sharpen_factor_white": 200,
+                    "dmsc_sharpen_factor_black": 400.0,
+                    "dmsc_sharpen_factor_white": 400.0,
                     "dmsc_sharpen_line_enable": 0,
                     "dmsc_sharpen_line_r1": 0,
                     "dmsc_sharpen_line_r2": 0,
@@ -862,7 +862,7 @@
                 "frames": 1,
                 "height": 512,
                 "path": [
-                    "C:/Users/hailo/src/cv-pipelines/Hailo_mercury_Rsimu_case/Raw/blabla_out/color_checker_gain_1.raw"
+                    "C:/Users/hailo/src/abc_isp_autotune/raws/image_395.raw"
                 ],
                 "start_frame": 0,
                 "width": 512
@@ -871,7 +871,7 @@
                 "dump_yuv_video": 0,
                 "dump_regs_enable": 0,
                 "jpg_file": " ",
-                "path": "C:/Users/hailo/src/abc_isp_autotune/results/",
+                "path": "C:/Users/hailo/src/abc_isp_autotune/results/result158_424/",
                 "video_file": ".mp4",
                 "yuv_file": ""
             },

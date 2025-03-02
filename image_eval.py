@@ -5,7 +5,7 @@ from brisque.brisque import BRISQUE
 import numpy as np
 from PIL import Image
 from threading import Lock
-
+import csv
 
 lock_brissque = Lock()
 def calculate_brisque(image_path):
@@ -50,13 +50,23 @@ def main():
     # path = "C:/Users/liorby/Documents/src/cv-pipelines/Hailo_mercury_Rsimu_case/ResultsSweep/avg_images/corner_25/scene_corner_25_sharpen1_wdr0_dsmc_b200w200_dci_gamma2_ccm_scene_default.png"
     # path = "C:/Users/liorby/Downloads/ABCPython-master/results/res_config_0.0_350.0_1650.0_150.0_6.6_11.0.png"
     # path = "C:/Users/liorby/Downloads/ABCPython-master/results/res_config_0.0_50.0_1350.0_250.0_3.1_101.0.png"
-    path = "C:/Users/liorby/Downloads/ABCPython-master/results/res_config_500.0_500.0_50.0_50.0_0.1_91.0.png"
+    path = "C:/Users/hailo/src/abc_isp_autotune/results/res_90_config_511.0_511.0_100.0_50.0_2.6_91.0.png"
     # folder_path = "C:/Users/liorby/Documents/src/cv-pipelines/Hailo_mercury_Rsimu_case/ResultsSweep/avg_images/corner_25"
     # res = evaluate_images_in_folder(folder_path)
     res = calculate_brisque(path)
     print("result is : ", res, flush=True)
     
-
-
+def evalute_report():
+    csv_file_path = "C:/Users/hailo/src/abc_isp_autotune/report.csv"
+    min_val = 0
+    min_params = []
+    with open(csv_file_path, mode='r') as file:
+        csvFile = csv.reader(file)
+        for line in csvFile:
+            if (float(line[-1]) > min_val):
+                min_val = float(line[-1])
+                min_params = line[:-1]
+    print("the params: ", min_params)
+    print("score: ", min_val)
 if __name__ == '__main__':
     main()

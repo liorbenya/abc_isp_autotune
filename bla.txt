@@ -1,0 +1,11 @@
+res_12_config_450.0_400.0_700.0_50.0_15.1_11.0.png = 12.198173877101311 | 20 iteration
+res_158_config_400.0_400.0_200.0_50.0_8.6_31.0.png = 11.765997401023213 | 200 iteration
+res_90_config_511.0_511.0_100.0_50.0_2.6_91.0.png = 11.331157383659246 | 400 iteration
+
+
+res_244_config_350.0_350.0_650.0_850.0_10.0_0.0_5.0_950.0_4.0_15.1_51.0.png | 200 iterations
+res_117_config_400.0_300.0_950.0_1550.0_10.0_0.0_5.0_550.0_4.0_1.6_11.0.png | 400 iterations
+
+remarks:
+1. i think the number of population is more crtical then the number of iterations 
+2. increasing the number of params gives better response and more logical converage behaivour  

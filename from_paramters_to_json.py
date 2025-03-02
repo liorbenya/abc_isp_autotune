@@ -1,4 +1,7 @@
 import json
+import multiprocessing
+
+lock_last_result_2 = multiprocessing.Lock()
 
 output_file_path = "results/res_config"
 last_result = 0
@@ -23,41 +26,25 @@ def update_json_field_for_injection_tool(file_path, new_value_dmsc, new_value_2d
         json.dump(data, file, indent=4)
 
 
-# def update_json_fiels_for_rsim(file_path, new_value_dmsc, new_value_2dnr, new_file_path, output_path):
-#     # Load the JSON data
-#     with open(file_path, 'r') as f:
-#         data = json.load(f)
-#     # Update the dmsc_sharpen_factor_black value to the new desired value
-#     new_sharpen_factor_black = 300  # Change this to the desired value
-#     for root_item in data["root"]:
-#         # import ipdb; ipdb.set_trace()
-#         for driver in root_item["driver"]:
-#             if driver.get("class") =="CDmscv2":
-#                 driver["dmsc_sharpen_factor_black"] = new_value_dmsc
-#                 driver["dmsc_sharpen_factor_white"] = new_value_dmsc
-#                 driver["dmsc_sharpen_clip_black"] = 2*new_value_dmsc
-#                 driver["dmsc_sharpen_clip_white"] = 2*new_value_dmsc
-#             if (driver.get("class") == "C2dnrv3"):
-#                 driver["sigma"] = new_value_2dnr
-#         root_item["output"]["path"] = output_path
-
-def update_json_fiels_for_rsim(file_path, values, keys, new_file_path, output_path):
+def update_json_fiels_for_rsim(file_path, values, keys, new_file_path, output_path, raw_path):
     # Load the JSON data
     with open(file_path, 'r') as f:
-        data = json.load(f)
+        with lock_last_result_2:
+            data = json.load(f)
     # Update the dmsc_sharpen_factor_black value to the new desired value
-    for root_item in data["root"]:
-        # import ipdb; ipdb.set_trace()
-        for driver in root_item["driver"]:
-            if driver.get("class") =="CDmscv2" or driver.get("class") == "C2dnrv3":
-                for i in range(len(keys)):
-                    if (keys[i] in driver):
-                        driver[keys[i]] = values[i]
-        root_item["output"]["path"] = output_path
-                
+            for root_item in data["root"]:
+                # import ipdb; ipdb.set_trace()
+                for driver in root_item["driver"]:
+                    if driver.get("class") =="CDmscv2" or driver.get("class") == "C2dnrv3":
+                        for i in range(len(keys)):
+                            if (keys[i] in driver):
+                                driver[keys[i]] = values[i]
+                root_item["output"]["path"] = output_path
+                root_item["input"]["path"] = [raw_path]
+                        
 
-    # Save the updated JSON data to the file
-    with open(new_file_path, 'w') as file:
-        json.dump(data, file, indent=4)
+            # Save the updated JSON data to the file
+            with open(new_file_path, 'w') as file:
+                json.dump(data, file, indent=4)
 
 

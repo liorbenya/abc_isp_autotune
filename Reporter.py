@@ -94,7 +94,7 @@ class Reporter:
                     data = "result:" 
                     for j in range(_self.abcList[i].cycle):
                         data = data + str(_self.abcList[i].globalOpts[j]) + "\n"
-                        data = data + "params: " + str(_self.abcList[i].globalParams[j]) + "\n"
+                        data = data + "params: " + str(_self.abcList[i].globalParams) + "\n"
                         path = "res_config"
                         for param in _self.abcList[i].globalParams:
                             path += "_" + str(param)

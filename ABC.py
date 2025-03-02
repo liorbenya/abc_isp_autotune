@@ -4,11 +4,118 @@ import sys
 import numpy as np
 from deap.benchmarks import *
 import progressbar
-from threading import Thread, Lock
+from Config import user_defined_function, constraint
+import multiprocessing
 
-lock =Lock()
-lock_progress = Lock()
-lock_eval = Lock()
+lock = multiprocessing.Lock()
+lock_progress = multiprocessing.Lock()
+lock_eval = multiprocessing.Lock()
+
+
+def combine_solution(sol_idx, foods, param2change, neighbour, lst_possiable_val):
+    r = random.random()
+    val =  foods[sol_idx][param2change] + (
+                    foods[sol_idx][param2change] - foods[neighbour][param2change]) * (
+                                                            r - 0.5) * 2
+    closest_value = min(lst_possiable_val, key=lambda num: abs(num - val))
+    return closest_value
+
+
+def get_updated_param(sol_idx, foods, param2change, neighbour, lst_possiable_val, type):
+    closest_value = combine_solution(sol_idx, foods, param2change, neighbour, lst_possiable_val)
+    match type:
+        case "int":
+            closest_value = int(closest_value)
+        case "float":
+            trancuate = "%.1f" % closest_value
+            closest_value = float(trancuate)  
+        case "double":
+            trancuate = "%.1f" % closest_value
+            closest_value = float(trancuate) 
+    return closest_value
+
+
+def update_param_multiprocess(sol_idx, foods, param2change, neighbour, lst_possiable_val, type, lst_params):
+    closest_value = get_updated_param(sol_idx, foods, param2change, neighbour, lst_possiable_val, type)
+    solution = np.copy(foods[sol_idx][:])
+    solution[param2change] = closest_value
+    res, _ = constraint(solution, lst_params)
+    while (not res):
+        closest_value = get_updated_param(sol_idx, foods, param2change, neighbour, lst_possiable_val, type)
+        solution[param2change] = closest_value
+        res, _ = constraint(solution, lst_params)
+    return closest_value
+
+
+
+
+def send_employed_bees_multprocess(indexes, foods, max_iterations, dimansions, food_number, lst_params, dict_possiable_val, parameters_dict, fitness, should_minimize, trial, f, prob):
+    i = 0
+    iter_num = 0
+    
+    while (i < len(indexes) and  iter_num <= max_iterations):
+        index = indexes[i]
+        r = random.random()
+        param2change = (int)(r * dimansions)
+
+        r = random.random()
+        neighbour = (int)(r * food_number)
+        while neighbour == index:
+            r = random.random()
+            neighbour = (int)(r * food_number)
+        solution = np.copy(foods[index][:])
+
+        r = random.random()
+        param_str = lst_params[param2change]
+        type =parameters_dict[param_str].type
+        lst_possiable_val = dict_possiable_val[param_str]
+        solution[param2change] = update_param_multiprocess(index, foods, param2change, neighbour, lst_possiable_val, type, lst_params)
+        ObjValSol = user_defined_function(solution)[0]
+        FitnessSol =    np.float64(1 / (ObjValSol + 1))
+        if (FitnessSol >fitness[index] and should_minimize == True) or (FitnessSol <= fitness[index] and should_minimize == False):
+            trial[index] = 0
+            foods[index][:] = np.copy(solution)
+            f[index] = ObjValSol
+            fitness[index] = FitnessSol
+        else:
+            trial[index] = trial[index] + 1
+        i += 1
+        iter_num+=1
+
+def send_onlooker_bees_multiprocess(indexes, foods, max_iterations, dimansions, food_number, lst_params, dict_possiable_val, parameters_dict, fitness, should_minimize, trial, f, prob):
+    i = 0
+    iter_num = 0
+    t = 0
+    while (i < len(indexes) and  iter_num <= max_iterations):
+        index = indexes[i]
+        r = random.random()
+        if ((r < prob[index] and should_minimize == True) or (r > prob[index] and should_minimize == False)):
+            t+=1
+            r = random.random()
+            param2change = (int)(r *dimansions)
+            r = random.random()
+            neighbour = (int)(r * food_number)
+            while neighbour == index:
+                r = random.random()
+                neighbour = (int)(r * food_number)
+            solution = np.copy(foods[index][:])
+            param_str = lst_params[param2change]
+            type =parameters_dict[param_str].type
+            lst_possiable_val = dict_possiable_val[param_str]
+            solution[param2change] =  update_param_multiprocess(index, foods, param2change, neighbour, lst_possiable_val, type, lst_params)
+            ObjValSol = user_defined_function(solution)[0]
+            FitnessSol = np.float64(1 / (ObjValSol + 1))
+            if (FitnessSol > fitness[index] and should_minimize == True) or (FitnessSol <= fitness[index] and should_minimize == False):
+                trial[index] = 0
+                foods[index][:] = np.copy(solution)
+                f[index] = ObjValSol
+                fitness[index] = FitnessSol
+            else:
+                trial[index] = trial[index] + 1
+        iter_num+=1
+        i += 1
+        i = i % len(indexes)
+
 class ABC:
 
     def __init__(_self, conf):
@@ -25,7 +132,10 @@ class ABC:
         _self.cycle = 0
         _self.experimentID = 0
         _self.globalOpts = list()
-        # _self.map_solution = dict()
+        if (_self.conf.MINIMIZE):
+            _self.defualt_sol = 100, 0
+        else:
+            _self.defualt_sol = 0, 0
 
         if (_self.conf.SHOW_PROGRESS):
             _self.progressbar = progressbar.ProgressBar(max_value=_self.conf.MAXIMUM_EVALUATION)
@@ -34,15 +144,17 @@ class ABC:
 
     def calculate_function(_self, sol):
         try:
-            if (_self.conf.SHOW_PROGRESS):
+            if (_self.conf.SHOW_PROGRESS): 
                 lock_eval.acquire()
                 _self.progressbar.update(_self.evalCount)
                 lock_eval.release()
-            return _self.conf.OBJECTIVE_FUNCTION(sol)
+            val = _self.conf.OBJECTIVE_FUNCTION(sol)
+            return val
         except ValueError as err:
+            print(err)
             print(
                 "An exception occured: Upper and Lower Bounds might be wrong. (" + str(err) + " in calculate_function), values are: " + str(sol))
-            return 0, 0
+            return _self.defualt_sol
             # sys.exit()
 
     def calculate_fitness(_self, fun):
@@ -52,6 +164,12 @@ class ABC:
         else:
             result = 1 + abs(fun)
         return result
+    
+    def increase_evals(_self, n):
+        lock_eval.acquire()
+        _self.evalCount += n
+        lock_eval.release()
+
 
     def increase_eval(_self):
         lock_eval.acquire()
@@ -102,13 +220,6 @@ class ABC:
             param_idx = _self.conf.PARAMETERS_LIST.index(bad_params[idx])
             _self.foods[index][param_idx] = _self.get_new_parameter(param_idx)
             res, bad_params = _self.conf.CONSTRAINT_FUNC(_self.foods[index][:], _self.conf.PARAMETERS_LIST)
-        
-    def fix_updated_params(_self, solution, param_index):
-        res, bad_params = _self.conf.CONSTRAINT_FUNC(solution, _self.conf.PARAMETERS_LIST)
-        while (not res):
-            _self.foods[index][param_idx] = _self.get_new_parameter(param_idx)
-            res, bad_params = _self.conf.CONSTRAINT_FUNC(_self.foods[index][:], _self.conf.PARAMETERS_LIST)
-
 
     def init(_self, index):
         if (not (_self.stopping_condition())):
@@ -131,12 +242,16 @@ class ABC:
         _self.globalOpt = np.copy(_self.f[0])
         _self.globalParams = np.copy(_self.foods[0][:])
 
-    def get_updated_param(_self, sol_idx, foods, param2change, neighbour):
+    def combine_solution(_self, sol_idx, foods, param2change, neighbour):
         r = random.random()
         val =  foods[sol_idx][param2change] + (
                         foods[sol_idx][param2change] - foods[neighbour][param2change]) * (
                                                              r - 0.5) * 2
         closest_value = min(_self.conf.PARAMS_POSSIBLE_VALUES[_self.conf.PARAMETERS_LIST[param2change]], key=lambda num: abs(num - val))
+        return closest_value
+
+    def get_updated_param(_self, sol_idx, foods, param2change, neighbour):
+        closest_value = _self.combine_solution(sol_idx, foods, param2change, neighbour)
         match _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[param2change]].type:
             case "int":
                 closest_value = int(closest_value)
@@ -162,13 +277,8 @@ class ABC:
 
 
     def update_param(_self, sol_idx):
-        r = random.random()
-        val =  _self.foods[sol_idx][_self.param2change] + (
-                        _self.foods[sol_idx][_self.param2change] - _self.foods[_self.neighbour][_self.param2change]) * (
-                                                             r - 0.5) * 2
-        closest_value = min( _self.conf.PARAMS_POSSIBLE_VALUES[_self.conf.PARAMETERS_LIST[_self.param2change]], key=lambda num: abs(num - val))
 
-        # print("x_i: ", _self.foods[sol_idx][_self.param2change], ", x_j: ", _self.foods[_self.neighbour][_self.param2change], ", r: ", r, ", val: ", val, flush=True)
+        closest_value = _self.update_param_multithread(sol_idx, _self.foods, _self.param2change, _self.neighbour) #TODO: If it works like that, not safe was not checked 
         match _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[_self.param2change]].type:
             case "int":
                 _self.solution[_self.param2change] = int(closest_value)
@@ -181,6 +291,7 @@ class ABC:
 
     def send_employed_bees_multithread(_self, indexes, foods):
         i = 0
+        import ipdb; ipdb.set_trace()
         while (i < len(indexes)) and (not (_self.stopping_condition())):
             index = indexes[i]
             r = random.random()
@@ -202,6 +313,8 @@ class ABC:
             if (FitnessSol > _self.fitness[index] and _self.conf.MINIMIZE == True) or (FitnessSol <= _self.fitness[index] and _self.conf.MINIMIZE == False):
                 _self.trial[index] = 0
                 _self.foods[index][:] = np.copy(solution)
+                if (ObjValSol == 0):
+                    import ipdb; ipdb.set_trace()
                 _self.f[index] = ObjValSol
                 _self.fitness[index] = FitnessSol
             else:
@@ -224,10 +337,6 @@ class ABC:
 
             r = random.random()
             _self.update_param(i)
-            # _self.solution[_self.param2change] = _self.foods[i][_self.param2change] + (
-            #             _self.foods[i][_self.param2change] - _self.foods[_self.neighbour][_self.param2change]) * (
-            #                                                  r - 0.5) * 2
-
             if _self.solution[_self.param2change] < _self.get_lowerbound(_self.param2change):
                 _self.solution[_self.param2change] = _self.get_lowerbound(_self.param2change)
             if _self.solution[_self.param2change] > _self.get_upperbound(_self.param2change):
@@ -272,6 +381,8 @@ class ABC:
                 if (FitnessSol > _self.fitness[index] and _self.conf.MINIMIZE == True) or (FitnessSol <= _self.fitness[index] and _self.conf.MINIMIZE == False):
                     _self.trial[index] = 0
                     _self.foods[index][:] = np.copy(solution)
+                    if (ObjValSol == 0):
+                        import ipdb; ipdb.set_trace()
                     _self.f[index] = ObjValSol
                     _self.fitness[index] = FitnessSol
                 else:
