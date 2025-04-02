@@ -9,3 +9,101 @@ res_117_config_400.0_300.0_950.0_1550.0_10.0_0.0_5.0_550.0_4.0_1.6_11.0.png | 40
 remarks:
 1. i think the number of population is more crtical then the number of iterations 
 2. increasing the number of params gives better response and more logical converage behaivour  
+
+for params:
+defualt_params_V4 = {
+    "CDmscv2" : {
+        "dmsc_sharpen_factor_white" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_factor_black" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_clip_white" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_clip_black" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_size": ParamsOptions(minBound=0, maxBound=16, jump=2, type="int"),
+        "dmsc_sharpen_t1": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t2_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int"),
+        "dmsc_sharpen_t3": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t4_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int")
+    },
+    "C2dnrv3" : { "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
+                   "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int")
+                },
+    "CWdrv41" : {
+        "strength" :  ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "high_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "low_strength" : ParamsOptions(minBound=0, maxBound=256, jump=10, type="int"),
+        "global_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "contrast" : ParamsOptions(minBound=-1023, maxBound=1023, jump=50, type="int"),
+    },
+    "CCpdv1" : {
+        "bls" : ParamsOptions(minBound=0, maxBound=255*256, jump=200*256, type="int"),
+    }
+} 
+we got score of 3.381507286586128 with json: res_547_config_350.0_450.0_1300.0_2047.0_8.0_0.0_4.0_650.0_3.0_15.6_128.0_11.0_121.0_130.0_71.0_377.0_51200.0.json
+
+
+PARAMS:
+    "CDmscv2" : {
+        "dmsc_sharpen_factor_white" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_factor_black" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_clip_white" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_clip_black" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_size": ParamsOptions(minBound=0, maxBound=16, jump=2, type="int"),
+        "dmsc_sharpen_t1": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t2_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int"),
+        "dmsc_sharpen_t3": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t4_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int")
+    },
+    "C2dnrv3" : { "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
+                   "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int")
+                },
+    "CWdrv41" : {
+        "strength" :  ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "high_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "low_strength" : ParamsOptions(minBound=0, maxBound=256, jump=10, type="int"),
+        "global_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "contrast" : ParamsOptions(minBound=-1023, maxBound=1023, jump=50, type="int"),
+    },
+    "CCproc" : {
+        "contrast" : ParamsOptions(minBound=0.3, maxBound=1.99, jump=0.1, type="float"),
+        "bright" : ParamsOptions(minBound=-128, maxBound=127, jump=50, type="int"),
+        "saturation" : ParamsOptions(minBound=0.0, maxBound=1.99, jump=0.1, type="float"),
+    },
+
+for single image (black women) we got best score of 0.1809070812239213 (!)
+
+defualt_params_V4 = {
+    "CDmscv2" : {
+        "dmsc_sharpen_factor_white" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_factor_black" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_clip_white" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_clip_black" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_size": ParamsOptions(minBound=0, maxBound=16, jump=2, type="int"),
+        "dmsc_sharpen_t1": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t2_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int"),
+        "dmsc_sharpen_t3": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t4_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int")
+    },
+    "C2dnrv3" : { "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
+                   "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int")
+                },
+    "CWdrv41" : {
+        "strength" :  ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "high_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "low_strength" : ParamsOptions(minBound=0, maxBound=256, jump=10, type="int"),
+        "global_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "contrast" : ParamsOptions(minBound=-1023, maxBound=1023, jump=50, type="int"),
+    },
+    "CCproc" : {
+        "contrast" : ParamsOptions(minBound=0.3, maxBound=1.99, jump=0.1, type="float"),
+        "bright" : ParamsOptions(minBound=-128, maxBound=127, jump=50, type="int"),
+        "saturation" : ParamsOptions(minBound=0.0, maxBound=1.99, jump=0.1, type="float"),
+    },
+        "CEEv1" : {
+        "ee_strength" : ParamsOptions(minBound=0, maxBound=128, jump=10, type="int"),
+        "ee_y_up_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_y_down_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_uv_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_edge_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int")
+    }
+}
+
+for single image (black women) we got best score of 1.9811580445809511 (!) 

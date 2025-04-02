@@ -29,60 +29,42 @@ lock_threads = multiprocessing.Lock()
 lock_csv_2 = multiprocessing.Lock()
 lock_threads_2 = multiprocessing.Lock()
 
-
-def user_defined_function(individual):
+def score_function(individual):
     global last_result
     json_path = "C:/Users/hailo/src/abc_isp_autotune/sfr_plus_cfg.json"
-    raw_path =  "C:/Users/hailo/src/cv-pipelines/Hailo_mercury_Rsimu_case/Raw/blabla_out/color_checker_gain_1.raw"
-    # try :
-    #     config_name = res_file_path.split('/')[-1]
-    #     #Save the image
-    #     avg_image_name = config_name.replace('.json', '.png')
-    #     img_path = os.path.join(result_path, avg_image_name)
-    #     score = calculate_brisque(img_path)
-    #     add_info_to_csv(score, individual)
-    #     return [score, False]
-    # except:
-    #     pass
-    # import ipdb; ipdb.set_trace()
-    lock_last_result.acquire()
-    res_file_path = get_json_file_path(individual)
-    rand =  random.randint(1, 512)
-    interm_res_dir = result_path+ "/" + "result" + str(last_result) + '_' + str(rand)
-    # avg_image_dir = result_path + "/" + "avg_images"  + str(last_result)
-    last_result+=1
-    new_raw_path = copy_raws(raw_path)
-    # update_json_fiels_for_rsim(json_path, individual[0], individual[1], res_file_path, interm_res_dir+ "/")
-    add_thrads_info()
-    update_json_fiels_for_rsim(json_path, individual, list(defualt_params_V3.keys()), res_file_path, interm_res_dir+ "/", new_raw_path)
-    lock_last_result.release()
-    try:
-        img_path = RunSimulator(result_path, res_file_path, interm_res_dir, result_path)
-        score = calculate_brisque(img_path)
-    except ValueError as err:
-        print(err)
-        return 100, False
+    raw_dir =  "C:/Users/hailo/src/abc_isp_autotune/original_raws/"
+    raw_files = [f for f in os.listdir(raw_dir) 
+                if f.lower().endswith('.raw')]
+    raw_files = ["C:/Users/hailo/src/abc_isp_autotune/original_raws/lab15_3ms_gain1_imx678_white_women.raw"]
+    score = 0  
+    for raw_file in raw_files:
+        lock_last_result.acquire()
+        raw_path = os.path.join(raw_dir, raw_file)
+        res_file_path = get_json_file_path(individual)
+        rand =  random.randint(1, 512)
+        interm_res_dir = result_path+ "/" + "result" + str(last_result) + '_' + str(rand)
+        # avg_image_dir = result_path + "/" + "avg_images"  + str(last_result)
+        last_result+=1
+        new_raw_path = copy_raws(raw_path)
+        # update_json_fiels_for_rsim(json_path, individual[0], individual[1], res_file_path, interm_res_dir+ "/")
+        add_thrads_info()
+        update_json_fiels_for_rsim(json_path, individual, get_params_dict_fields(defualt_params_V4), res_file_path, interm_res_dir+ "/", new_raw_path, defualt_params_V4.keys())
+        lock_last_result.release()
+        try:
+            img_path = RunSimulator(result_path, res_file_path, interm_res_dir, result_path)
+            score += calculate_brisque(img_path)
+        except ValueError as err:
+            print(err)
+            return 100, False
+        os.remove(new_raw_path)
+        shutil.rmtree(interm_res_dir)
+    score = score/len(raw_files)
     add_info_to_csv(score, individual)
-    os.remove(new_raw_path)
     return [score, True]
 
 def copy_raws(raw_path):
-    # roi = {'width' : 512, 'height': 512, 'x_offset': 0, 'y_offset': 0}
-    # import ipdb; ipdb.set_trace()
-    # with open(raw_path, 'rb') as fd:
-    #     image = np.fromfile(fd, dtype=np.dtype('<u2'), count=roi['height']*roi["width"])
-    # if image.dtype == np.uint16:
-    #     dtype = np.dtype('<u2')
-    # elif image.dtype == np.uint32:
-    #     dtype = np.dtype('<u4')
-    # else:
-    #     import ipdb; ipdb.set_trace()
-    #     raise ValueError("Image must be of dtype uint16 or uint32")
     rand = random.randint(1, 500)
     output_path = "C:/Users/hailo/src/abc_isp_autotune/raws/image_" + str(rand) +".raw"
-    # with open(output_path, 'wb') as fd:
-    #     image.astype(dtype).tofile(fd)
-
     # Copy the .raw file
     shutil.copy(raw_path, output_path)
     return output_path
@@ -100,7 +82,6 @@ def add_thrads_info():
     lock_threads.acquire()
     with open(threads_csv, mode = "a", newline='') as tfile:
         with lock_threads_2:
-        # writer = csv.writer(tfile)
             line = "thread: " + str(multiprocessing.current_process()) + " got: " + str(last_result) + "\n"
             tfile.write(line)
             tfile.flush()
@@ -125,6 +106,7 @@ class ParamsOptions:
     jump: float
     type: str
 
+#Params to work on:
 defualt_params = { 
     "dmsc_sharpen_factor" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
                    "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float") 
@@ -153,17 +135,111 @@ defualt_params_V3 = {
                    "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
                    "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
 }
+possiable_classes = ["CDmscv2", "C2dnrv3", "CWdrv41", "CCproc", "CEEv1", "CCpdv1"]
+
+defualt_params_V4 = {
+    "CDmscv2" : {
+        "dmsc_sharpen_factor_white" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_factor_black" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_clip_white" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_clip_black" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_size": ParamsOptions(minBound=0, maxBound=16, jump=2, type="int"),
+        "dmsc_sharpen_t1": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t2_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int"),
+        "dmsc_sharpen_t3": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t4_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int")
+    },
+    "C2dnrv3" : { "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
+                   "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int")
+                },
+    "CWdrv41" : {
+        "strength" :  ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "high_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "low_strength" : ParamsOptions(minBound=0, maxBound=256, jump=10, type="int"),
+        "global_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "contrast" : ParamsOptions(minBound=-1023, maxBound=1023, jump=50, type="int"),
+    },
+    "CCproc" : {
+        "contrast" : ParamsOptions(minBound=0.3, maxBound=1.99, jump=0.1, type="float"),
+        "bright" : ParamsOptions(minBound=-128, maxBound=127, jump=50, type="int"),
+        "saturation" : ParamsOptions(minBound=0.0, maxBound=1.99, jump=0.1, type="float"),
+    },
+    "CEEv1" : {
+        "ee_strength" : ParamsOptions(minBound=0, maxBound=128, jump=10, type="int"),
+        "ee_y_up_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_y_down_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_uv_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_edge_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int")
+    }
+}
+
+
+defualt_params_V5 = {
+    "CDmscv2" : {
+        "dmsc_sharpen_factor_white" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_factor_black" :  ParamsOptions(minBound=0, maxBound=511, jump=50, type="int") ,
+        "dmsc_sharpen_clip_white" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_clip_black" :  ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int") ,
+        "dmsc_sharpen_size": ParamsOptions(minBound=0, maxBound=16, jump=2, type="int"),
+        "dmsc_sharpen_t1": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t2_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int"),
+        "dmsc_sharpen_t3": ParamsOptions(minBound=0, maxBound=2047, jump=50, type="int"),
+        "dmsc_sharpen_t4_shift": ParamsOptions(minBound=0, maxBound=11, jump=1, type="int")
+    },
+    "C2dnrv3" : { "sigma" : ParamsOptions(minBound=0.1, maxBound=16.0, jump=0.5, type="float"),
+                   "strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int")
+                },
+    "CWdrv41" : {
+        "strength" :  ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "high_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "low_strength" : ParamsOptions(minBound=0, maxBound=256, jump=10, type="int"),
+        "global_strength" : ParamsOptions(minBound=1, maxBound=128, jump=10, type="int"),
+        "contrast" : ParamsOptions(minBound=-1023, maxBound=1023, jump=50, type="int"),
+    },
+    "CCproc" : {
+        "contrast" : ParamsOptions(minBound=0.3, maxBound=1.99, jump=0.1, type="float"),
+        "bright" : ParamsOptions(minBound=-128, maxBound=127, jump=50, type="int"),
+        "saturation" : ParamsOptions(minBound=0.0, maxBound=1.99, jump=0.1, type="float"),
+    },
+    "CEEv1" : {
+        "ee_strength" : ParamsOptions(minBound=0, maxBound=128, jump=10, type="int"),
+        "ee_y_up_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_y_down_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_uv_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int"),
+        "ee_edge_gain" : ParamsOptions(minBound=0, maxBound=65535, jump=1500, type="int")
+    },
+    "CCpdv1" : {
+        "bls" : ParamsOptions(minBound=0, maxBound=255*256, jump=200*256, type="int"),
+    }
+}
+
+def get_params_dict_len(dict):
+    len = 0 
+    for class_name, class_params in dict.items():
+        len += len(class_params.keys())
+    return len
+
+def get_global_params_name(class_name, field_name):
+    return class_name + "/" + field_name
+
+def get_params_dict_fields(dict):
+    list_of_fields = [] 
+    for class_name, class_params in dict.items():
+        for key in class_params.keys():
+            list_of_fields.append(get_global_params_name(class_name,key))
+    return list_of_fields
+
 
 def constraint(params, params_key):
     # import ipdb; ipdb.set_trace()
     zippy = zip(params_key, params)
     dictty = dict(zippy)
-    if ("dmsc_sharpen_t1" in params_key and
-         "dmsc_sharpen_t2_shift" in params_key and 
-         "dmsc_sharpen_t3" in params_key):
-        res =  dictty["dmsc_sharpen_t1"] + 2**(dictty["dmsc_sharpen_t2_shift"]) < dictty["dmsc_sharpen_t3"]
+    if ("CDmscv2/dmsc_sharpen_t1" in params_key and
+         "CDmscv2/dmsc_sharpen_t2_shift" in params_key and 
+         "CDmscv2/dmsc_sharpen_t3" in params_key):
+        res =  dictty["CDmscv2/dmsc_sharpen_t1"] + 2**(dictty["CDmscv2/dmsc_sharpen_t2_shift"]) < dictty["CDmscv2/dmsc_sharpen_t3"]
         if (not res):
-            return [False, ["dmsc_sharpen_t1", "dmsc_sharpen_t2_shift" , "dmsc_sharpen_t3"]]
+            return [False, ["CDmscv2/dmsc_sharpen_t1", "CDmscv2/dmsc_sharpen_t2_shift" , "CDmscv2/dmsc_sharpen_t3"]]
     return [True, []]
 
 ITERATOIN_NUM = 100
@@ -173,16 +249,14 @@ class Config:
             config = configparser.ConfigParser()
             config.read(os.path.dirname(os.path.abspath(__file__))+'/ABC.ini')
             #####SETTINGS FILE######
-            _self.OBJECTIVE_FUNCTION = _self.objFunctionSelector.get(config['DEFAULT']['ObjectiveFunction'], "Error")
             _self.NUMBER_OF_POPULATION = int(config['DEFAULT']['NumberOfPopulation'])
             _self.MAXIMUM_EVALUATION = int(config['DEFAULT']['MaximumEvaluation'])
             _self.LIMIT = int(config['DEFAULT']['Limit'])
             _self.FOOD_NUMBER = int(_self.NUMBER_OF_POPULATION/2)
             _self.DIMENSION = int(config['DEFAULT']['Dimension'])
-            # _self.PARAMETERS_LIST = config['DEFAULT']['Paramters_List'].split(", ")
             # import ipdb; ipdb.set_trace()
-            _self.PARAMETERS_DICT = defualt_params_V3
-            _self.PARAMETERS_LIST = list(_self.PARAMETERS_DICT.keys())
+            _self.PARAMETERS_DICT = defualt_params_V4
+            _self.PARAMETERS_LIST = get_params_dict_fields(_self.PARAMETERS_DICT)
             _self.DIMENSION = len(_self.PARAMETERS_LIST)
             _self.UPPER_BOUND = float(config['DEFAULT']['UpperBound'])
             _self.LOWER_BOUND = float(config['DEFAULT']['LowerBound'])
@@ -258,8 +332,6 @@ class Config:
                     _self.UPPER_BOUND = float(arg)
                 elif opt in ('-r', '--runtime'):
                     _self.RUN_TIME = int(arg)
-                elif opt in ('-o', '--obj_fun'):
-                    _self.OBJECTIVE_FUNCTION = _self.objFunctionSelector.get(arg, "sphere")
                 elif opt in ('--output_folder'):
                     _self.OUTPUTS_FOLDER_NAME = arg
                 elif opt in ('--param_name'):
@@ -270,41 +342,19 @@ class Config:
                     _self.RESULT_BY_CYCLE_FOLDER = arg
                 elif opt in ('--show_functions'):
                     print("We use deap.benchmarks functions. Available functions are listed below:")
-                    for i in _self.objFunctionSelector:
-                        print(i)
                     sys.exit()
             #####SETTINGS ARGUMENTS######
 
     def create_params_possiable_values(_self):
         params_possiable_vals = {}
-        for key, value in _self.PARAMETERS_DICT.items():
-            new_lst = []
-            val = value.minBound
-            while val <= value.maxBound:
-                new_lst.append(val)
-                val += value.jump
-            if (val != value.maxBound):
-                new_lst.append(value.maxBound)
-            params_possiable_vals[key] = new_lst
+        for class_name, class_params in _self.PARAMETERS_DICT.items():
+            for field_name, field_param in class_params.items():
+                new_lst = []
+                val = field_param.minBound
+                while val <= field_param.maxBound:
+                    new_lst.append(val)
+                    val += field_param.jump
+                if (val != field_param.maxBound):
+                    new_lst.append(field_param.maxBound)
+                params_possiable_vals[get_global_params_name(class_name,field_name)] = new_lst
         return params_possiable_vals
-
-    #######FUNCTION_LIST######
-    objFunctionSelector = {
-        'sphere': sphere,
-        'rastrigin': rastrigin,
-        'rosenbrock': rosenbrock,
-        'rand': rand,
-        'plane': plane,
-        'cigar': cigar,
-        'h1': h1,
-        'ackley': ackley,
-        'bohachevsky': bohachevsky,
-        'griewank': griewank,
-        'rastrigin_scaled': rastrigin_scaled,
-        'rastrigin_skew': rastrigin_skew,
-        'schaffer': schaffer,
-        'schwefel': schwefel,
-        'himmelblau': himmelblau,
-        'user_defined': user_defined_function
-    }
-    #######FUNCTION_LIST######

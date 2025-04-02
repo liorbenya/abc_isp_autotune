@@ -26,7 +26,7 @@ def update_json_field_for_injection_tool(file_path, new_value_dmsc, new_value_2d
         json.dump(data, file, indent=4)
 
 
-def update_json_fiels_for_rsim(file_path, values, keys, new_file_path, output_path, raw_path):
+def update_json_fiels_for_rsim(file_path, values, keys, new_file_path, output_path, raw_path, possiable_classes):
     # Load the JSON data
     with open(file_path, 'r') as f:
         with lock_last_result_2:
@@ -35,10 +35,13 @@ def update_json_fiels_for_rsim(file_path, values, keys, new_file_path, output_pa
             for root_item in data["root"]:
                 # import ipdb; ipdb.set_trace()
                 for driver in root_item["driver"]:
-                    if driver.get("class") =="CDmscv2" or driver.get("class") == "C2dnrv3":
+                    if (driver.get("class") in possiable_classes):
                         for i in range(len(keys)):
-                            if (keys[i] in driver):
-                                driver[keys[i]] = values[i]
+                            key_global = keys[i].split("/")
+                            class_name = key_global[0]
+                            field_name = key_global[1]
+                            if (class_name == driver.get("class") and field_name in driver):
+                                driver[field_name] = values[i]
                 root_item["output"]["path"] = output_path
                 root_item["input"]["path"] = [raw_path]
                         

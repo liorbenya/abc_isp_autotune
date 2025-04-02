@@ -1,5 +1,5 @@
 import os
-
+import shutil
 import numpy as np
 from decimal import Decimal
 
@@ -26,12 +26,36 @@ class Reporter:
 
     def run_info(_self):
         sum = []
+        best_val = 100
+        best_params = [0.0] * _self.abcList[0].conf.DIMENSION
+        if (_self.abcList[0].conf.MINIMIZE == False):
+            best_val = 0
         for i in range(_self.abcList[0].conf.RUN_TIME):
+            float_str_list = [str(num) for num in  _self.abcList[i].globalParams]
+            paraams_str = "_".join(float_str_list)
             print(_self.abcList[i].experimentID + " run: ", _self.abcList[i].globalOpt, " Cycle: ",
-                  i, " Time: ",
-                  _self.abcList[i].globalTime)
+                  i, " Params: ",paraams_str)
+            if ((_self.abcList[0].conf.MINIMIZE == True and _self.abcList[i].globalOpt < best_val) or
+                    (_self.abcList[0].conf.MINIMIZE == False and _self.abcList[i].globalOpt > best_val)):
+                best_val = _self.abcList[i].globalOpt
+                best_params = _self.abcList[i].globalParams
             sum.append(_self.abcList[i].globalOpt)
         print("Mean: ",np.mean(sum)," Std: ",np.std(sum)," Median: ",np.median(sum))
+        float_str_list = [str(num) for num in best_params]
+        paraams_str = "_".join(float_str_list)
+        results_dir = "C:/Users/hailo/src/abc_isp_autotune/results/"
+        best_res_dir =  "C:/Users/hailo/src/abc_isp_autotune/bla/"
+        shutil.rmtree(best_res_dir)
+        os.makedirs(best_res_dir)
+        for filename in os.listdir(results_dir):
+            if paraams_str in filename:
+                source_path = os.path.join(results_dir, filename)
+                destination_path = os.path.join(best_res_dir, filename)
+                shutil.copy(source_path, destination_path)
+                print(f"Copied: {filename}")
+
+
+
     def command_line_print(_self):
         sum = []
         for i in range(_self.abcList[0].conf.RUN_TIME):
@@ -54,7 +78,6 @@ class Reporter:
                     _self.abcList[i].conf.NUMBER_OF_POPULATION,
                     _self.abcList[i].conf.MAXIMUM_EVALUATION,
                     _self.abcList[i].conf.LIMIT,
-                    _self.abcList[i].conf.OBJECTIVE_FUNCTION.__name__,
                     _self.abcList[i].conf.DIMENSION,
                     _self.abcList[i].conf.UPPER_BOUND,
                     _self.abcList[i].conf.LOWER_BOUND,

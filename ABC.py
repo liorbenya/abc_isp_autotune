@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from deap.benchmarks import *
 import progressbar
-from Config import user_defined_function, constraint
+from Config import score_function, constraint
 import multiprocessing
 
 lock = multiprocessing.Lock()
@@ -43,7 +43,7 @@ def update_param_multiprocess(sol_idx, foods, param2change, neighbour, lst_possi
     while (not res):
         closest_value = get_updated_param(sol_idx, foods, param2change, neighbour, lst_possiable_val, type)
         solution[param2change] = closest_value
-        res, _ = constraint(solution, lst_params)
+        res, _ = constraint(solution[param2change], lst_params)
     return closest_value
 
 
@@ -70,7 +70,7 @@ def send_employed_bees_multprocess(indexes, foods, max_iterations, dimansions, f
         type =parameters_dict[param_str].type
         lst_possiable_val = dict_possiable_val[param_str]
         solution[param2change] = update_param_multiprocess(index, foods, param2change, neighbour, lst_possiable_val, type, lst_params)
-        ObjValSol = user_defined_function(solution)[0]
+        ObjValSol = score_function(solution)[0]
         FitnessSol =    np.float64(1 / (ObjValSol + 1))
         if (FitnessSol >fitness[index] and should_minimize == True) or (FitnessSol <= fitness[index] and should_minimize == False):
             trial[index] = 0
@@ -103,7 +103,7 @@ def send_onlooker_bees_multiprocess(indexes, foods, max_iterations, dimansions, 
             type =parameters_dict[param_str].type
             lst_possiable_val = dict_possiable_val[param_str]
             solution[param2change] =  update_param_multiprocess(index, foods, param2change, neighbour, lst_possiable_val, type, lst_params)
-            ObjValSol = user_defined_function(solution)[0]
+            ObjValSol = score_function(solution)[0]
             FitnessSol = np.float64(1 / (ObjValSol + 1))
             if (FitnessSol > fitness[index] and should_minimize == True) or (FitnessSol <= fitness[index] and should_minimize == False):
                 trial[index] = 0
@@ -148,7 +148,7 @@ class ABC:
                 lock_eval.acquire()
                 _self.progressbar.update(_self.evalCount)
                 lock_eval.release()
-            val = _self.conf.OBJECTIVE_FUNCTION(sol)
+            val = score_function(sol)
             return val
         except ValueError as err:
             print(err)
@@ -193,17 +193,23 @@ class ABC:
             if (_self.f[i] < _self.globalOpt and _self.conf.MINIMIZE == True) or (_self.f[i] >= _self.globalOpt and _self.conf.MINIMIZE == False):
                 _self.globalOpt = np.copy(_self.f[i])
                 _self.globalParams = np.copy(_self.foods[i][:])
+    def get_param(_self, index):
+        global_key = _self.conf.PARAMETERS_LIST[index]
+        splited_key = global_key.split("/")
+        class_name = splited_key[0]
+        field_name = splited_key[1]
+        return _self.conf.PARAMETERS_DICT[class_name][field_name]
 
     def get_upperbound(_self, index):
-        return _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[index]].maxBound
+        return _self.get_param(index).maxBound
 
     def get_lowerbound(_self, index):
-        return _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[index]].minBound
+        return _self.get_param(index).minBound
 
     def get_new_parameter(_self, dim_index):
         idx = random.randint(0, len(_self.conf.PARAMS_POSSIBLE_VALUES[_self.conf.PARAMETERS_LIST[dim_index]]) - 1)
         val = _self.conf.PARAMS_POSSIBLE_VALUES[_self.conf.PARAMETERS_LIST[dim_index]][idx]
-        match _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[dim_index]].type:
+        match _self.get_param(dim_index).type:
             case "int":
                 return int(val)
             case "float":
@@ -252,7 +258,7 @@ class ABC:
 
     def get_updated_param(_self, sol_idx, foods, param2change, neighbour):
         closest_value = _self.combine_solution(sol_idx, foods, param2change, neighbour)
-        match _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[param2change]].type:
+        match _self.get_param(param2change).type:
             case "int":
                 closest_value = int(closest_value)
             case "float":
@@ -279,7 +285,7 @@ class ABC:
     def update_param(_self, sol_idx):
 
         closest_value = _self.update_param_multithread(sol_idx, _self.foods, _self.param2change, _self.neighbour) #TODO: If it works like that, not safe was not checked 
-        match _self.conf.PARAMETERS_DICT[_self.conf.PARAMETERS_LIST[_self.param2change]].type:
+        match _self.get_param( _self.param2change).type:
             case "int":
                 _self.solution[_self.param2change] = int(closest_value)
             case "float":
@@ -409,9 +415,6 @@ class ABC:
 
                 r = random.random()
                 _self.update_param(i)
-                # _self.solution[_self.param2change] = _self.foods[i][_self.param2change] + (
-                #             _self.foods[i][_self.param2change] - _self.foods[_self.neighbour][_self.param2change]) * (
-                                                                #  r - 0.5) * 2
                 if _self.solution[_self.param2change] < _self.get_lowerbound(_self.param2change):
                     _self.solution[_self.param2change] = _self.get_lowerbound(_self.param2change)
                 if _self.solution[_self.param2change] > _self.get_upperbound(_self.param2change):
